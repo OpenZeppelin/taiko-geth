@@ -308,19 +308,14 @@ func (t *Taiko) ValidateAnchorTx(tx *types.Transaction, header *types.Header) (b
 
 	// TODO: Change manually setting anchor contract for now
 	if tx.To() == nil || *tx.To() != common.HexToAddress("0x1670000000000000000000000000000000010001") {
-		log.Info("err2", "err2", tx.To())
 		return false, nil
 	}
 
 	if !bytes.HasPrefix(tx.Data(), AnchorSelector) {
-		log.Info("err3", "err3", tx.Data())
-		log.Info("selector", "anchor selector", AnchorSelector)
 		return false, nil
 	}
 
 	if tx.Value().Cmp(common.Big0) != 0 {
-
-		log.Info("err4", "err4", "err4")
 		return false, nil
 	}
 
@@ -336,8 +331,6 @@ func (t *Taiko) ValidateAnchorTx(tx *types.Transaction, header *types.Header) (b
 	// }
 
 	if tx.GasFeeCap().Cmp(header.BaseFee) != 0 {
-
-		log.Info("err5", "err5", "err5")
 		return false, nil
 	}
 
@@ -345,8 +338,6 @@ func (t *Taiko) ValidateAnchorTx(tx *types.Transaction, header *types.Header) (b
 
 	addr, err := s.Sender(tx)
 	if err != nil {
-
-		log.Info("er61", "err6", "err6")
 		return false, err
 	}
 
