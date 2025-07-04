@@ -37,9 +37,12 @@ func TaikoGenesisBlock(networkID uint64) *Genesis {
 		chainConfig.OntakeBlock = InternalDevnetOntakeBlock
 		chainConfig.PacayaBlock = InternalDevnetPacayaBlock
 		allocJSON = taikoGenesis.InternalL2AGenesisAllocJSON
+
+		// Internal devnet uses alethia genesis block (for now this only includes new anchor)
 	case params.TaikoInternalL2BNetworkID.Uint64():
 		chainConfig.ChainID = params.TaikoInternalL2BNetworkID
-		allocJSON = taikoGenesis.InternalL2BGenesisAllocJSON
+		allocJSON = taikoGenesis.AlethiaGenesisAllocJSON
+
 	case params.SnaefellsjokullNetworkID.Uint64():
 		chainConfig.ChainID = params.SnaefellsjokullNetworkID
 		allocJSON = taikoGenesis.SnaefellsjokullGenesisAllocJSON

@@ -33,13 +33,13 @@ var (
 
 	GoldenTouchAccount   = common.HexToAddress("0x0000777735367b36bC9B61C50022d9D0700dB4Ec")
 	TaikoL2AddressSuffix = "10001"
-	AnchorSelector       = crypto.Keccak256([]byte("anchor(bytes32,bytes32,uint64,uint32)"))[:4]
-	AnchorV2Selector     = crypto.Keccak256(
-		[]byte("anchorV2(uint64,bytes32,uint32,(uint8,uint8,uint32,uint64,uint32))"),
-	)[:4]
-	AnchorV3Selector = crypto.Keccak256(
-		[]byte("anchorV3(uint64,bytes32,uint32,(uint8,uint8,uint32,uint64,uint32),bytes32[])"),
-	)[:4]
+	AnchorSelector       = crypto.Keccak256([]byte("anchor(uint256,uint256,bytes32,(bytes32,bytes32,address,bytes32,bytes32,bytes32,bytes,uint256,uint256,uint64,uint64,uint64,bytes,bytes32,uint64,uint256,bytes32,uint64,uint64,bytes32,bytes32),uint32)"))[:4]
+	// AnchorV2Selector     = crypto.Keccak256(
+	// 	[]byte("anchorV2(uint64,bytes32,uint32,(uint8,uint8,uint32,uint64,uint32))"),
+	// )[:4]
+	// AnchorV3Selector = crypto.Keccak256(
+	// 	[]byte("anchorV3(uint64,bytes32,uint32,(uint8,uint8,uint32,uint64,uint32),bytes32[])"),
+	// )[:4]
 	AnchorGasLimit   = uint64(250_000)
 	AnchorV3GasLimit = uint64(1_000_000)
 )
@@ -301,31 +301,43 @@ func (t *Taiko) ValidateAnchorTx(tx *types.Transaction, header *types.Header) (b
 		return false, nil
 	}
 
-	if tx.To() == nil || *tx.To() != t.taikoL2Address {
+	// if tx.To() == nil || *tx.To() != t.taikoL2Address {
+	// 	log.Info("err2", "err2", tx.To())
+	// 	return false, nil
+	// }
+
+	// TODO: Change manually setting anchor contract for now
+	if tx.To() == nil || *tx.To() != common.HexToAddress("0x1670000000000000000000000000000000010001") {
+		log.Info("err2", "err2", tx.To())
 		return false, nil
 	}
 
-	if !bytes.HasPrefix(tx.Data(), AnchorSelector) &&
-		!bytes.HasPrefix(tx.Data(), AnchorV2Selector) &&
-		!bytes.HasPrefix(tx.Data(), AnchorV3Selector) {
+	if !bytes.HasPrefix(tx.Data(), AnchorSelector) {
+		log.Info("err3", "err3", tx.Data())
+		log.Info("selector", "anchor selector", AnchorSelector)
 		return false, nil
 	}
 
 	if tx.Value().Cmp(common.Big0) != 0 {
+
+		log.Info("err4", "err4", "err4")
 		return false, nil
 	}
 
-	if t.chainConfig.IsPacaya(header.Number) {
-		if tx.Gas() != AnchorV3GasLimit {
-			return false, nil
-		}
-	} else {
-		if tx.Gas() != AnchorGasLimit {
-			return false, nil
-		}
-	}
+	// TODO: Reintroduce anchor gas limit
+	// if t.chainConfig.IsPacaya(header.Number) {
+	// 	if tx.Gas() != AnchorV3GasLimit {
+	// 		return false, nil
+	// 	}
+	// } else {
+	// 	if tx.Gas() != AnchorGasLimit {
+	// 		return false, nil
+	// 	}
+	// }
 
 	if tx.GasFeeCap().Cmp(header.BaseFee) != 0 {
+
+		log.Info("err5", "err5", "err5")
 		return false, nil
 	}
 
@@ -333,6 +345,8 @@ func (t *Taiko) ValidateAnchorTx(tx *types.Transaction, header *types.Header) (b
 
 	addr, err := s.Sender(tx)
 	if err != nil {
+
+		log.Info("er61", "err6", "err6")
 		return false, err
 	}
 
