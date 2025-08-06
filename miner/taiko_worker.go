@@ -46,7 +46,24 @@ func (w *Miner) buildTransactionsLists(
 		currentHead = w.chain.CurrentBlock()
 	)
 
+	log.Info(
+		"Start building transactions lists",
+		"blockMaxGasLimit", blockMaxGasLimit,
+		"maxBytesPerTxList", maxBytesPerTxList,
+		"maxTransactionsLists", maxTransactionsLists,
+		"localAccounts", localAccounts,
+		"minTip", minTip,
+	)
+
 	if currentHead == nil {
+		log.Error(
+			"Failed to find current head",
+			"blockMaxGasLimit", blockMaxGasLimit,
+			"maxBytesPerTxList", maxBytesPerTxList,
+			"maxTransactionsLists", maxTransactionsLists,
+			"localAccounts", localAccounts,
+			"minTip", minTip,
+		)
 		return nil, fmt.Errorf("failed to find current head")
 	}
 
@@ -58,6 +75,12 @@ func (w *Miner) buildTransactionsLists(
 			OnlyPlainTxs: true,
 		},
 	)) == 0 {
+		log.Warn(
+			"Transaction pool for building transactions lists is empty",
+			"minTip", minTip,
+			"baseFee", baseFee,
+			"onlyPlainTxs", true,
+		)
 		return txsLists, nil
 	}
 
@@ -70,6 +93,18 @@ func (w *Miner) buildTransactionsLists(
 		noTxs:         false,
 		baseFeePerGas: baseFee,
 	}
+
+	log.Info(
+		"Prepare the sealing task for building transactions lists",
+		"timestamp", params.timestamp,
+		"forceTime", params.forceTime,
+		"parentHash", params.parentHash,
+		"coinbase", params.coinbase,
+		"random", params.random,
+		"minTip", minTip,
+		"baseFee", baseFee,
+		"noTxs", params.noTxs,
+	)
 
 	env, err := w.prepareWork(params, false)
 	if err != nil {
@@ -99,8 +134,34 @@ func (w *Miner) buildTransactionsLists(
 			minTip,
 		)
 		if err != nil {
+			log.Error(
+				"Failed to commit transactions for building transactions lists",
+				"timestamp", params.timestamp,
+				"forceTime", params.forceTime,
+				"parentHash", params.parentHash,
+				"coinbase", params.coinbase,
+				"random", params.random,
+				"minTip", minTip,
+				"baseFee", baseFee,
+				"noTxs", params.noTxs,
+				"error", err,
+			)
+
 			return nil, nil, err
 		}
+
+		log.Info(
+			"New transactions committed for building transactions lists",
+			"localTxs", len(localTxs),
+			"remoteTxs", len(remoteTxs),
+			"txsPruned", len(pruningResult.TxsPruned),
+			"receiptsPruned", len(pruningResult.ReceiptsPruned),
+			"txsRemaining", len(result.TxsRemaining),
+			"receiptsRemaining", len(result.ReceiptsRemaining),
+			"size", result.Size,
+			"gasUsed", accumulateGasUsed(result.ReceiptsRemaining),
+			"bytesLength", uint64(result.Size),
+		)
 
 		return result, &PreBuiltTxList{
 			TxList:           result.TxsRemaining,
@@ -124,6 +185,19 @@ func (w *Miner) buildTransactionsLists(
 
 		txsLists = append(txsLists, preBuiltTxList)
 	}
+
+	log.Info(
+		"Finished building transactions lists",
+		"timestamp", params.timestamp,
+		"forceTime", params.forceTime,
+		"parentHash", params.parentHash,
+		"coinbase", params.coinbase,
+		"random", params.random,
+		"minTip", minTip,
+		"baseFee", baseFee,
+		"noTxs", params.noTxs,
+		"txLists", len(txsLists),
+	)
 
 	return txsLists, nil
 }

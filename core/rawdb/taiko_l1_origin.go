@@ -29,6 +29,17 @@ func l1OriginKey(blockID *big.Int) []byte {
 
 // L1Origin represents a L1Origin of a L2 block.
 type L1Origin struct {
+	BlockID            *big.Int    `json:"blockID" gencodec:"required"`
+	L2BlockHash        common.Hash `json:"l2BlockHash"`
+	L1BlockHeight      *big.Int    `json:"l1BlockHeight" rlp:"optional"`
+	L1BlockHash        common.Hash `json:"l1BlockHash" rlp:"optional"`
+	BuildPayloadArgsID [8]byte     `json:"buildPayloadArgsID" rlp:"optional"`
+	IsForcedInclusion  bool        `json:"isForcedInclusion" rlp:"optional"`
+	Signature          [65]byte    `json:"signature"         rlp:"optional"`
+}
+
+// L1OriginLegacy represents a legacy L1Origin of a L2 block.
+type L1OriginLegacy struct {
 	BlockID       *big.Int    `json:"blockID" gencodec:"required"`
 	L2BlockHash   common.Hash `json:"l2BlockHash"`
 	L1BlockHeight *big.Int    `json:"l1BlockHeight" rlp:"optional"`
@@ -41,8 +52,9 @@ type l1OriginMarshaling struct {
 }
 
 // IsPreconfBlock returns true if the L1Origin is for a preconfirmation block.
+// A preconfirmation block is defined as one where the L1BlockHeight is either nil or zero.
 func (l *L1Origin) IsPreconfBlock() bool {
-	return l.L1BlockHeight == nil
+	return l.L1BlockHeight == nil || l.L1BlockHeight.Cmp(common.Big0) == 0
 }
 
 // WriteL1Origin stores a L1Origin into the database.
@@ -57,16 +69,31 @@ func WriteL1Origin(db ethdb.KeyValueWriter, blockID *big.Int, l1Origin *L1Origin
 	}
 }
 
-// ReadL1Origin retrieves the given L2 block's L1Origin from database.
 func ReadL1Origin(db ethdb.KeyValueReader, blockID *big.Int) (*L1Origin, error) {
 	data, _ := db.Get(l1OriginKey(blockID))
 	if len(data) == 0 {
 		return nil, nil
 	}
 
+	// First try to decode the new version (with new fields).
 	l1Origin := new(L1Origin)
 	if err := rlp.Decode(bytes.NewReader(data), l1Origin); err != nil {
-		return nil, fmt.Errorf("invalid L1Origin RLP bytes: %w", err)
+		// If decoding the new version fails, try to decode the legacy version (without new fields).
+		l1OriginLegacy := new(L1OriginLegacy)
+		if err := rlp.Decode(bytes.NewReader(data), &l1OriginLegacy); err != nil {
+			return nil, fmt.Errorf("invalid legacy L1Origin RLP bytes: %w", err)
+		}
+
+		l1Origin = &L1Origin{
+			BlockID:            l1OriginLegacy.BlockID,
+			L2BlockHash:        l1OriginLegacy.L2BlockHash,
+			L1BlockHeight:      l1OriginLegacy.L1BlockHeight,
+			L1BlockHash:        l1OriginLegacy.L1BlockHash,
+			BuildPayloadArgsID: [8]byte{},
+			// These will be zero values
+			IsForcedInclusion: false,
+			Signature:         [65]byte{},
+		}
 	}
 
 	return l1Origin, nil
